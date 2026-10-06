@@ -7,14 +7,17 @@ adb shell wm size 720x1280
 adb shell settings put global window_animation_scale 0
 adb shell settings put global transition_animation_scale 0
 adb shell settings put global animator_duration_scale 0
+adb shell settings put secure immersive_mode_confirmations confirmed
 activity=$(adb shell cmd package resolve-activity --brief "$pkg" | tr -d '\r' | tail -n 1)
 adb shell am start -W -n "$activity"
 for attempt in $(seq 1 40); do
-  if adb logcat -d | rg -q IRON_VEIL_READY; then break; fi
+  adb logcat -d > build/android-logcat.txt
+  if rg -q IRON_VEIL_READY build/android-logcat.txt; then break; fi
   sleep 2
 done
 adb logcat -d > build/android-logcat.txt
 rg IRON_VEIL_READY build/android-logcat.txt
+adb shell input tap 1140 500
 sleep 4
 adb shell pidof "$pkg"
 adb exec-out screencap -p > build/android-menu.png

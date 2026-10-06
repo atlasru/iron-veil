@@ -211,7 +211,7 @@ func shoot():
 		game.effects.tracer(from,endpoint,spec.color,weapon==2)
 		if result:
 			var body=result.collider
-			game.effects.impact(result.position,result.normal,str(body.get_meta("surface","concrete")),weapon==2)
+			game.effects.impact(result.position,result.normal,str(body.get_meta("surface","concrete")),weapon==2,body is StaticBody3D)
 			if body is DamageZone:
 				body.enemy.take_damage(spec.damage,result.position,weapon,direction*(14 if weapon else 3),body.zone)
 				stats.hits+=1

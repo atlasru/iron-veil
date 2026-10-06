@@ -60,18 +60,22 @@ func muzzle(at: Vector3, color: Color):
 				entry.life = .06
 				break
 
-func impact(at: Vector3, normal: Vector3, surface: String, rail: bool = false):
+func impact(at: Vector3, normal: Vector3, surface: String, rail: bool = false, persistent_mark: bool = true):
 	var color = Color(1,.58,.23) if surface=="metal" else Color(.65,.67,.59)
 	burst(at+normal*.03,normal,[3,5,8,12][Settings.values.effects],color,.34,5 if rail else 2.8)
 	Sound.play("impact",at,-11,1.4 if surface=="metal" else .75)
+	if not persistent_mark:return
 	if decals.size()>36:
 		var old = decals.pop_front();old.queue_free()
 	var mark = MeshInstance3D.new()
 	mark.mesh = impact_mesh
 	var mat = StandardMaterial3D.new()
 	mat.albedo_color = Color(.045,.047,.044)
+	mat.albedo_texture = preload("res://assets/scorch.png")
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mark.material_override = mat
+	mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mark)
 	mark.global_position = at+normal*.012
 	if absf(normal.y)>.98: mark.look_at(at+normal,Vector3.RIGHT)

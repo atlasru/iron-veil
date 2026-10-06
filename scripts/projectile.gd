@@ -21,7 +21,7 @@ func _physics_process(delta):
 	query.exclude=excluded
 	var result=get_world_3d().direct_space_state.intersect_ray(query)
 	if result:
-		game.effects.impact(result.position,result.normal,"metal")
+		game.effects.impact(result.position,result.normal,str(result.collider.get_meta("surface","metal")),false,result.collider is StaticBody3D)
 		if result.collider is PlayerRobot:result.collider.take_damage(damage,source)
 		if result.collider is BreakableProp:result.collider.take_damage(damage,result.position,velocity*.18)
 		if heavy:

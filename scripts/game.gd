@@ -37,6 +37,7 @@ func _ready():
 	if "--integration" in args:
 		test_runner=load("res://tests/integration.gd").new();test_runner.game=self;add_child(test_runner)
 	elif benchmark or capture:
+		Settings.values.third_person=true
 		call_deferred("start_game",false)
 		if benchmark:player.benchmark_mode=true
 	else:hud.show_menu("main")
@@ -214,6 +215,7 @@ func run_benchmark(delta: float):
 		average/=maxi(1,frame_samples.size())
 		var metrics={"scenario":["exploration_third","exploration_first","combat_third","combat_first"][benchmark_phase],"frames":frame_samples.size(),"mean_frame_ms":average,"p95_frame_ms":frame_samples[mini(frame_samples.size()-1,int(frame_samples.size()*.95))],"fps":1000/maxf(.01,average),"draw_calls":Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),"visible_primitives":Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME),"cpu_process_ms":Performance.get_monitor(Performance.TIME_PROCESS)*1000,"physics_ms":Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000,"render_scale":get_viewport().scaling_3d_scale,"preset":Settings.values.preset,"resolution":str(get_viewport().size),"renderer":RenderingServer.get_current_rendering_method(),"adapter":RenderingServer.get_video_adapter_name()}
 		benchmark_data.append(metrics)
+		metrics["view"]="third_person" if Settings.values.third_person else "first_person"
 		print("BENCHMARK "+JSON.stringify(metrics))
 		if not DisplayServer.get_name()=="headless":get_viewport().get_texture().get_image().save_png("res://capture-benchmark-"+str(benchmark_phase)+".png")
 		benchmark_phase+=1;benchmark_clock=0;frame_samples.clear()

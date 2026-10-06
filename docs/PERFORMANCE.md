@@ -14,10 +14,10 @@ simulation delta. Draw calls and primitives are final-frame counters, not averag
 
 | Scenario | FPS | Mean frame ms | P95 ms | Draw calls | Primitives |
 |---|---:|---:|---:|---:|---:|
-| exploration_third | 7.91 | 126.45 | 243.41 | 757 | 59710 |
-| exploration_first | 8.89 | 112.54 | 137.60 | 746 | 55816 |
-| combat_third | 6.26 | 159.62 | 180.54 | 1161 | 128264 |
-| combat_first | 6.36 | 157.11 | 192.12 | 1045 | 115832 |
+| exploration_third | 4.65 | 215.13 | 605.98 | 805 | 66334 |
+| exploration_first | 9.30 | 107.57 | 125.69 | 758 | 63990 |
+| combat_third | 2.20 | 453.63 | 1071.41 | 1098 | 126686 |
+| combat_first | 4.63 | 216.08 | 415.56 | 1016 | 126842 |
 
 Raw local data: [benchmark-local.json](benchmark-local.json). Every CI run
 uploads its own environment-labelled JSON and actual viewport captures. They
