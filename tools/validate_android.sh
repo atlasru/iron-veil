@@ -28,16 +28,33 @@ rg IRON_VEIL_MISSION build/android-logcat.txt
 adb exec-out screencap -p > build/android-third-person.png
 adb shell input swipe 145 580 145 480 900
 adb shell input swipe 850 380 1020 380 450
-adb shell input tap 1136 52
-sleep 2
+adb shell input tap 1140 80
+for attempt in $(seq 1 15); do
+  adb logcat -d > build/android-logcat.txt
+  if rg -q IRON_VEIL_VIEW build/android-logcat.txt; then break; fi
+  sleep 1
+done
 adb logcat -d > build/android-logcat.txt
 rg IRON_VEIL_VIEW build/android-logcat.txt
 adb exec-out screencap -p > build/android-first-person.png
-adb shell input tap 1160 512
+adb shell input swipe 1160 512 1160 512 1200
+for attempt in $(seq 1 15); do
+  adb logcat -d > build/android-logcat.txt
+  if rg -q IRON_VEIL_FIRE build/android-logcat.txt; then break; fi
+  sleep 1
+done
+rg IRON_VEIL_FIRE build/android-logcat.txt
 adb shell input keyevent 3
 sleep 2
 adb shell am start -W -n "$activity"
 sleep 3
+adb shell input tap 250 250
+for attempt in $(seq 1 15); do
+  adb logcat -d > build/android-logcat.txt
+  if rg -q IRON_VEIL_RESUMED build/android-logcat.txt; then break; fi
+  sleep 1
+done
+rg IRON_VEIL_RESUMED build/android-logcat.txt
 adb exec-out screencap -p > build/android-resume.png
 adb shell pidof "$pkg"
 adb logcat -d > build/android-logcat.txt

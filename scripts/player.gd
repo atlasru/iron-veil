@@ -189,6 +189,7 @@ func shoot():
 	ammo[weapon]-=1
 	cooldown=spec.interval
 	stats.shots+=1
+	if OS.is_debug_build() and stats.shots==1:print("IRON_VEIL_FIRE / "+spec.short)
 	visual.recoil=.8 if weapon else .35
 	kick+=Vector2(spec.kick,randf_range(-spec.kick*.3,spec.kick*.3))
 	shake=spec.kick*4

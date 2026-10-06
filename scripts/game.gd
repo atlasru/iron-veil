@@ -129,6 +129,7 @@ func pause_game():
 func resume_game():
 	get_tree().paused=false;playing=true;hud.show_menu("")
 	if not OS.has_feature("mobile"):Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
+	print("IRON_VEIL_RESUMED")
 
 func interact():
 	var distance=player.global_position.distance_to(FacilityLevel.OBJECTIVES[stage])
