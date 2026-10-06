@@ -2,6 +2,11 @@ extends Node3D
 
 var level: FacilityLevel
 var player: PlayerRobot
+var hangar: MechHangar
+var deploy_left=0.0
+var deploy_continue=false
+var cinematic_text=""
+var automation=false
 var hud: TacticalHUD
 var effects: CombatEffects
 var enemies: Array[EnemyRobot] = []
@@ -31,9 +36,11 @@ func _ready():
 	level=FacilityLevel.new();level.game=self;add_child(level)
 	player=PlayerRobot.new();player.game=self;add_child(player);player.position=FacilityLevel.SPAWNS[0]
 	player.visual.animate(0,Vector3.ZERO,true,-.08)
+	hangar=MechHangar.new();hangar.game=self;add_child(hangar)
 	var layer=CanvasLayer.new();add_child(layer)
 	hud=TacticalHUD.new();hud.game=self;layer.add_child(hud)
 	var args=OS.get_cmdline_user_args()
+	automation="--integration" in args or "--visual-qa" in args or "--runtime-qa" in args or "--systems" in args
 	benchmark="--benchmark" in args
 	capture="--capture" in args
 	if "--integration" in args:
@@ -42,7 +49,7 @@ func _ready():
 		Settings.values.third_person=true
 		call_deferred("start_game",false)
 		if benchmark:player.benchmark_mode=true
-	else:hud.show_menu("main")
+	else:return_hangar()
 	var ambience=AudioStreamPlayer3D.new();ambience.stream=Sound.streams.ambient;ambience.volume_db=-12;ambience.unit_size=70
 	add_child(ambience);ambience.position=Vector3(0,2,-40)
 	ambience.finished.connect(ambience.play);ambience.play()
@@ -54,6 +61,7 @@ func report_presented():
 	print("IRON_VEIL_PRESENTED / "+RenderingServer.get_current_rendering_method())
 
 func _exit_tree():
+	RobotVisual.material_cache.clear()
 	Industrial.materials.clear()
 	Industrial.meshes.clear()
 
@@ -69,6 +77,9 @@ func shutdown(code: int = 0):
 
 func start_game(continue_game: bool = false):
 	get_tree().paused=false
+	deploy_left=0
+	hangar.set_active(false);level.show();player.show();player.set_physics_process(true);player.camera.make_current()
+	effects.reset()
 	stage=clampi(int(Settings.checkpoint.get("stage",0)),0,3) if continue_game else 0
 	if not continue_game:Settings.clear_checkpoint()
 	for enemy in enemies:
@@ -82,17 +93,40 @@ func start_game(continue_game: bool = false):
 	player.ammo=[36,8,5];player.reserve=[288,64,35]
 	player.reload_left=0;player.charge=0;player.invulnerable=2.0
 	player.yaw=0;player.pitch=-.08;player.clear_input()
+	player.visual.reset_pose();player.visual.rotation.y=0;player.switch_weapon(int(Settings.values.loadout));player.stats={"shots":0,"hits":0,"damage_received":0.0}
+	player.camera_distance=Settings.values.camera_distance if Settings.values.third_person else 0
+	player.update_camera(0)
 	for i in level.gates.size():level.gates[i].position.y=3.5
 	level.restore_gates(stage)
+	effects.show()
 	playing=true;elapsed=0;kills=0
 	hud.show_menu("")
 	hud.message("WRAITH ONLINE / Find the uplink",4)
 	if not OS.has_feature("mobile") and not capture and not benchmark:Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
 	spawn_stage(stage)
 	print("IRON_VEIL_MISSION / stage "+str(stage))
+	print("IRON_VEIL_CONTROL / mounted combat platform")
+
+func deploy(continue_game:bool=false):
+	deploy_continue=continue_game
+	if automation or not Settings.values.cinematics:start_game(continue_game);return
+	deploy_left=6.4;playing=false;cinematic_text="WRAITH / INTEGRATED WEAPONS PLATFORM"
+	hangar.focus="chassis";hangar.desired_distance=8.8
+	hud.show_menu("cinematic");Sound.play("servo",hangar.display.global_position,-3,.55)
+
+func finish_deploy():
+	deploy_left=0;start_game(deploy_continue)
+
+func return_hangar():
+	get_tree().paused=false;playing=false;deploy_left=0
+	player.clear_input();player.hide();player.set_physics_process(false);level.hide()
+	for enemy in enemies:
+		if is_instance_valid(enemy):enemy.hide();enemy.set_physics_process(false)
+	effects.hide();hangar.set_active(true);Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
+	hud.show_menu("main")
 
 func spawn(kind: String, at: Vector3):
-	var enemy=EnemyRobot.new();enemy.game=self;enemy.kind=kind;enemy.position=at;enemy.set_meta("stage",stage)
+	var enemy=EnemyRobot.new();enemy.game=self;enemy.kind=kind;enemy.position=at;enemy.rotation.y=atan2(at.x-player.global_position.x,at.z-player.global_position.z);enemy.set_meta("stage",stage)
 	add_child(enemy);enemies.append(enemy)
 
 func spawn_stage(index: int):
@@ -109,7 +143,8 @@ func spawn_stage(index: int):
 
 func _unhandled_input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.physical_keycode==KEY_ESCAPE:pause_game()
+		if event.physical_keycode in [KEY_ESCAPE,KEY_SPACE] and deploy_left>0:finish_deploy()
+		elif event.physical_keycode==KEY_ESCAPE:pause_game()
 		elif event.physical_keycode==KEY_E and playing:interact()
 		elif event.physical_keycode==KEY_F3:
 			Settings.values.diagnostics=not Settings.values.diagnostics;Settings.save()
@@ -118,7 +153,7 @@ func _unhandled_input(event):
 		elif event.button_index==JOY_BUTTON_B and playing:interact()
 
 func _notification(what):
-	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT,NOTIFICATION_APPLICATION_PAUSED] and playing and not benchmark and not capture:pause_game()
+	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT,NOTIFICATION_APPLICATION_PAUSED] and playing and not benchmark and not capture and not automation:pause_game()
 	if what==NOTIFICATION_WM_GO_BACK_REQUEST:pause_game()
 
 func pause_game():
@@ -187,6 +222,10 @@ func push_props(at: Vector3, radius: float, force: float):
 			if offset.length()<radius:child.apply_central_impulse((offset.normalized()+Vector3.UP*.3)*force*(1-offset.length()/radius))
 
 func _process(delta):
+	if deploy_left>0:
+		deploy_left-=delta;hangar.desired_orbit+=delta*.13
+		if deploy_left<2.8:cinematic_text="ACTUATOR PRESSURE NOMINAL / MISSION LINK ESTABLISHED"
+		if deploy_left<=0:finish_deploy()
 	if not playing:return
 	elapsed+=delta
 	if capture:
