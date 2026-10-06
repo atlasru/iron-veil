@@ -1,14 +1,15 @@
 class_name TacticalHUD
 extends Control
 
-const INK=Color(.83,.9,.85)
-const LIME=Color(.67,.93,.39)
+const INK=Color(.85,.89,.89)
+const LIME=Color(.96,.65,.25)
 const DIM=Color(.44,.56,.56)
 const DARK=Color(.035,.065,.078,.94)
 var game: Node3D
 var menu: Control
 var menu_kind=""
 var return_menu="main"
+var display_font: Font
 var font: Font
 var scale_ui=1.0
 var origin=Vector2.ZERO
@@ -27,7 +28,9 @@ func _ready():
 	process_mode=Node.PROCESS_MODE_ALWAYS
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter=Control.MOUSE_FILTER_IGNORE
-	font=ThemeDB.fallback_font
+	font=preload("res://assets/fonts/Barlow-Regular.ttf")
+	display_font=preload("res://assets/fonts/BarlowCondensed-SemiBold.ttf")
+	var ui_theme=Theme.new();ui_theme.default_font=font;ui_theme.default_font_size=19;theme=ui_theme
 	mobile=OS.has_feature("mobile") or "--touch" in OS.get_cmdline_user_args()
 
 func _process(delta):
@@ -52,6 +55,9 @@ func _process(delta):
 func text(value: String, at: Vector2, pixels: int, color: Color=INK):
 	draw_string(font,at,value,HORIZONTAL_ALIGNMENT_LEFT,-1,pixels,color)
 
+func crosshair_point() -> Vector2:
+	return get_viewport().get_visible_rect().get_center()
+
 func _draw():
 	if not game.player:return
 	draw_set_transform(origin,0,Vector2.ONE*scale_ui)
@@ -61,7 +67,7 @@ func _draw():
 		text(game.OBJECTIVE_TEXT[game.stage],Vector2(40,88),21)
 		var distance=p.global_position.distance_to(FacilityLevel.OBJECTIVES[game.stage])
 		text("UPLINK   "+str(roundi(distance))+" m",Vector2(40,114),16,DIM)
-		var center=Vector2(800,450)
+		var center=(crosshair_point()-origin)/scale_ui
 		var gap=6+CombatRules.WEAPONS[p.weapon].spread*180+(4 if p.sprinting else 0)
 		for dir in [Vector2.LEFT,Vector2.RIGHT,Vector2.UP,Vector2.DOWN]:draw_line(center+dir*gap,center+dir*(gap+9),INK,1.5,true)
 		draw_circle(center,1.5,LIME)
@@ -110,17 +116,22 @@ func _draw():
 		if Settings.values.diagnostics:
 			var data="%d FPS / %.1f ms   CPU %.2f / PHYS %.2f ms\nDRAW %d / TRI %d / OBJ %d   SCALE %.2f" % [Engine.get_frames_per_second(),1000.0/maxi(1,Engine.get_frames_per_second()),Performance.get_monitor(Performance.TIME_PROCESS)*1000,Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000,Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME),Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME),get_viewport().scaling_3d_scale]
 			var lines=data.split("\n");text(lines[0],Vector2(42,155),15,LIME);text(lines[1],Vector2(42,177),15,LIME)
+	elif menu_kind=="cinematic":
+		draw_rect(Rect2(0,0,1600,64),Color(.008,.015,.023))
+		draw_rect(Rect2(0,808,1600,92),Color(.008,.015,.023))
+		text(game.cinematic_text,Vector2(65,846),22,LIME)
+		text("TAP / SPACE TO SKIP",Vector2(1310,853),16,DIM)
 	else:
-		draw_rect(Rect2(0,0,1600,900),Color(.018,.042,.05,.48))
-		draw_rect(Rect2(0,0,710,900),Color(.025,.046,.057,.96))
+		draw_rect(Rect2(0,0,1600,900),Color(.018,.032,.041,.11))
+		draw_rect(Rect2(0,0,615,900),Color(.018,.030,.040,.94))
 		text("VEIL INDUSTRIAL / FIELD SYSTEMS",Vector2(63,81),16,DIM)
-		text("IRON//VEIL",Vector2(58,177),67,INK)
-		draw_line(Vector2(63,208),Vector2(638,208),LIME,2)
-		text("WRAITH / COMBAT ANDROID",Vector2(64,244),17,LIME)
+		draw_string(display_font,Vector2(58,177),"IRON//VEIL",HORIZONTAL_ALIGNMENT_LEFT,-1,80,INK)
+		draw_line(Vector2(63,208),Vector2(588,208),LIME,2)
+		text("WRAITH / MOBILE WEAPONS PLATFORM",Vector2(64,244),17,LIME)
 		text("RELAY YARD → COOLANT → CORE",Vector2(64,766),17,INK)
 		text("An abandoned facility. An autonomous defense network.",Vector2(64,801),16,DIM)
 		text("Break the interlocks. Silence the Warden. Transmit.",Vector2(64,829),16,DIM)
-		text("0.1.0 / OFFLINE / NO ACCOUNT",Vector2(64,874),13,DIM)
+		text("1.0.0-rc.2 / OFFLINE",Vector2(64,874),13,DIM)
 	draw_set_transform(Vector2.ZERO,0,Vector2.ONE)
 
 func draw_button(key: String, value: String):
@@ -137,6 +148,8 @@ func message(value: String, seconds: float):
 	message_text=value;message_left=seconds
 
 func _input(event):
+	if menu_kind=="cinematic" and event is InputEventScreenTouch and event.pressed:
+		game.finish_deploy();get_viewport().set_input_as_handled();return
 	if menu_kind=="pause" and ((event is InputEventKey and event.pressed and event.physical_keycode==KEY_ESCAPE) or (event is InputEventJoypadButton and event.pressed and event.button_index==JOY_BUTTON_START)):
 		game.resume_game();get_viewport().set_input_as_handled();return
 	if menu_kind!="" or not game.playing:return
@@ -210,7 +223,7 @@ func style(background: Color, border: Color) -> StyleBoxFlat:
 	return box
 
 func button(parent: Node, value: String, callback: Callable):
-	var b=Button.new();b.text=value;b.custom_minimum_size=Vector2(520,61)
+	var b=Button.new();b.text=value;b.custom_minimum_size=Vector2(515,50)
 	b.add_theme_font_size_override("font_size",21)
 	b.add_theme_color_override("font_color",INK)
 	b.add_theme_stylebox_override("normal",style(Color(.055,.1,.12),Color(.19,.29,.29)))
@@ -224,32 +237,50 @@ func show_menu(kind: String):
 	# Native Controls need mouse emulation; gameplay keeps independent touch IDs.
 	Input.emulate_mouse_from_touch=kind!=""
 	if menu:menu.queue_free();menu=null
-	if kind=="":return
+	if kind=="" or kind=="cinematic":return
 	menu=Control.new();add_child(menu)
 	menu.position=Vector2(63,285)*scale_ui+origin
 	menu.scale=Vector2.ONE*scale_ui
-	var column=VBoxContainer.new();column.add_theme_constant_override("separation",13);menu.add_child(column)
+	var column=VBoxContainer.new();column.add_theme_constant_override("separation",8);menu.add_child(column)
 	match kind:
 		"main":
-			button(column,"DEPLOY / NEW MISSION",func():game.start_game(false))
-			if not Settings.checkpoint.is_empty():button(column,"CONTINUE / CHECKPOINT",func():game.start_game(true))
+			button(column,"DEPLOY / NEW MISSION",func():game.deploy(false))
+			if not Settings.checkpoint.is_empty():button(column,"CONTINUE / CHECKPOINT",func():game.deploy(true))
+			button(column,"LOADOUT / WEAPON HARDPOINT",func():show_menu("loadout"))
+			button(column,"SYSTEMS / MACHINE INSPECTION",func():show_menu("systems"))
 			button(column,"SYSTEM CONFIGURATION",func():return_menu="main";show_menu("settings"))
 			button(column,"FIELD MANUAL",func():show_menu("manual"))
+			button(column,"CREDITS",func():show_menu("credits"))
 			button(column,"EXIT",func():game.shutdown())
 		"pause":
 			button(column,"RESUME",game.resume_game)
 			button(column,"SYSTEM CONFIGURATION",func():return_menu="pause";show_menu("settings"))
 			button(column,"RESTART / CHECKPOINT",func():game.start_game(true))
-			button(column,"ABORT / MAIN MENU",func():get_tree().paused=false;show_menu("main"))
+			button(column,"ABORT / MAIN MENU",func():game.return_hangar())
 		"complete", "death":
 			var label=Label.new();label.text="UPLINK COMPLETE" if kind=="complete" else "WRAITH OFFLINE"
 			label.add_theme_font_size_override("font_size",29);label.modulate=LIME;column.add_child(label)
 			var detail=Label.new();detail.text="%d machines neutralized / %02d:%02d" % [game.kills,int(game.elapsed)/60,int(game.elapsed)%60]
 			detail.add_theme_font_size_override("font_size",18);column.add_child(detail)
 			button(column,"REDEPLOY",func():game.start_game(kind=="death"))
-			button(column,"MAIN MENU",func():get_tree().paused=false;show_menu("main"))
+			button(column,"MAIN MENU",func():game.return_hangar())
 		"manual":
 			var label=Label.new();label.text="LEFT stick: move / RIGHT region: look\nFIRE + look + movement: independent touches\nADS / RUN / JUMP / R reload / weapon cycle\n3P / 1P: shared robot, switch anytime\nL/R: camera shoulder / E: activate terminal\n\nPC: WASD, mouse, LMB / RMB, R, Shift, Space\n1–3 weapons / V camera / Q shoulder / E terminal\nGamepad: sticks, triggers, A jump, X reload\nY weapon / RB view / LB shoulder / B terminal\n\nSensor damage reduces enemy accuracy.\nLeg damage slows. Arm damage slows firing.\nCoil lance penetrates Warden armor.\nExplosive cargo affects nearby machines.";label.add_theme_font_size_override("font_size",18);column.add_child(label)
+			button(column,"BACK",func():show_menu("main"))
+		"loadout":
+			for i in 3:
+				var id=i
+				button(column,CombatRules.WEAPONS[i].name,func():Settings.values.loadout=id;Settings.save();game.hangar.display.set_weapon(id);show_menu("loadout"))
+			var detail=Label.new();detail.text="Equipped: "+CombatRules.WEAPONS[int(Settings.values.loadout)].name+"\nIntegrated hardpoint / servo-stabilized receiver";detail.add_theme_font_size_override("font_size",18);column.add_child(detail)
+			button(column,"BACK",func():game.hangar.inspect_system("chassis");show_menu("main"))
+		"systems":
+			for data in [["CHASSIS / ARMOR & HARDPOINTS","chassis"],["LOCOMOTION / ACTUATORS & PISTONS","locomotion"],["OPTICS / TARGETING ARRAY","optics"],["REACTOR / THERMAL CONTROL","reactor"]]:
+				var focus=data[1]
+				button(column,data[0],func():game.hangar.inspect_system(focus))
+			var info=Label.new();info.text="Drag the machine to orbit / scroll to inspect";info.add_theme_font_size_override("font_size",17);column.add_child(info)
+			button(column,"BACK",func():game.hangar.inspect_system("chassis");show_menu("main"))
+		"credits":
+			var label=Label.new();label.text="IRON//VEIL / Original combat machines & facility\nGodot Engine 4.6.2 / MIT\nBarlow & Barlow Condensed / SIL Open Font License\nOriginal meshes, procedural mechanical animation\nOriginal sound synthesis / offline simulation";label.add_theme_font_size_override("font_size",18);column.add_child(label)
 			button(column,"BACK",func():show_menu("main"))
 		"settings":build_settings(column)
 
@@ -263,19 +294,20 @@ func build_settings(column: VBoxContainer):
 	option(fields,"Anti-aliasing","aa",["OFF","MSAA 2x","MSAA 4x"])
 	option(fields,"FPS limit","fps_limit",["30","60","90","120"],func(i):Settings.values.fps_limit=[30,60,90,120][i];changed(),[30,60,90,120].find(Settings.values.fps_limit))
 	slider(fields,"Field of view","fov",60,100,1)
-	slider(fields,"Camera distance","camera_distance",2.4,6,.1)
+	slider(fields,"Camera distance","camera_distance",3.4,9,.1)
+	slider(fields,"ADS sensitivity","ads_sensitivity",.2,1.5,.05)
 	slider(fields,"Look sensitivity","sensitivity",.2,3,.1)
 	slider(fields,"Control size","touch_scale",.75,1.4,.05)
 	slider(fields,"Gyro sensitivity","gyro_sensitivity",.1,3,.1)
 	slider(fields,"Master volume","volume",0,1,.05)
 	slider(fields,"Impact shake","shake",0,1,.05)
-	for item in [["Gyroscope aiming","gyro"],["Gyro only while ADS","gyro_ads_only"],["Invert vertical aim","invert_y"],["Third-person default","third_person"],["Dynamic render scale","dynamic_resolution"],["Performance overlay","diagnostics"]]:
+	for item in [["Gyroscope aiming","gyro"],["Gyro only while ADS","gyro_ads_only"],["Invert vertical aim","invert_y"],["Third-person default","third_person"],["Dynamic render scale","dynamic_resolution"],["Performance overlay","diagnostics"],["Deployment sequence","cinematics"]]:
 		var check=CheckButton.new();check.text=item[0];check.button_pressed=Settings.values[item[1]];check.custom_minimum_size.y=48;check.add_theme_font_size_override("font_size",18);fields.add_child(check)
 		var key=item[1];check.toggled.connect(func(value):Settings.values[key]=value;changed())
 	button(column,"BACK",func():show_menu(return_menu))
 
 func changed():
-	Settings.apply();Settings.save();game.level.apply_graphics()
+	Settings.apply();Settings.save();game.level.apply_graphics();game.hangar.apply_graphics()
 
 func option(parent: Node, title: String, key: String, labels: Array, callback: Callable=Callable(), selected: int=-1):
 	var row=HBoxContainer.new();parent.add_child(row)

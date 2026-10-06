@@ -1,7 +1,7 @@
 name: Android validation
 on:
   push:
-    branches: [main, feature/iron-veil-v0.1.0]
+    branches: [main, 'feature/iron-veil-*']
     paths-ignore: [".github/workflows/toolchain.yml", "docs/**", "*.md"]
   pull_request:
   workflow_dispatch:
@@ -41,6 +41,10 @@ jobs:
           ! rg 'SCRIPT ERROR|Parse Error' build/import.log
       - name: Unit tests
         run: .ci-tools/godot/godot --headless res://tests/unit.tscn 2>&1 | tee build/unit.log
+      - name: Aim convergence regression
+        run: |
+          .ci-tools/godot/godot --headless res://tests/aim.tscn 2>&1 | tee build/aim.log
+          ! rg 'SCRIPT ERROR|AIM FAIL' build/aim.log
       - name: Integration tests
         run: |
           timeout 60 .ci-tools/godot/godot --headless -- --integration 2>&1 | tee build/integration.log

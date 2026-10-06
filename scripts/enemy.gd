@@ -32,34 +32,23 @@ func _ready():
 	strafe_sign=-1 if int(origin.x+origin.z)%2==0 else 1
 	max_health={"drone":65.0,"android":150.0,"heavy":430.0,"boss":920.0}[kind]
 	health=max_health
+	visual=RobotVisual.new()
+	visual.kind={"drone":"scout","android":"sentinel","heavy":"heavy","boss":"warden"}[kind]
+	add_child(visual);visual.set_weapon(1 if kind in ["heavy","boss"] else 0)
+	var cfg=visual.profile
 	var collision=CollisionShape3D.new();var capsule=CapsuleShape3D.new()
-	capsule.radius=.55 if kind in ["heavy","boss"] else .43
-	capsule.height=3.6 if kind in ["heavy","boss"] else 2.5
-	if kind=="drone":capsule.height=.8;capsule.radius=.39
-	collision.shape=capsule;collision.position.y=capsule.height*.5;add_child(collision)
-	if kind=="drone":
-		drone=Node3D.new();add_child(drone)
-		Industrial.cylinder(drone,Vector3(0,.45,0),.38,.48,"dark",true)
-		Industrial.box(drone,Vector3(0,.4,-.28),Vector3(.45,.24,.2),"paint")
-		Industrial.box(drone,Vector3(0,.42,-.4),Vector3(.2,.07,.06),"red")
-		for side in [-1,1]:
-			Industrial.box(drone,Vector3(side*.46,.4,0),Vector3(.4,.1,.46),"paint")
-			Industrial.cylinder(drone,Vector3(side*.54,.41,0),.16,.15,"rust")
-			Industrial.cylinder(drone,Vector3(side*.54,.27,0),.12,.045,"cyan")
-		DamageZone.attach(drone,self,"core",Vector3(0,.4,0),Vector3(1.1,.65,.8))
-	else:
-		visual=RobotVisual.new();add_child(visual)
-		if kind in ["heavy","boss"]:visual.scale=Vector3.ONE*(1.5 if kind=="boss" else 1.35)
-		visual.tint_enemy(kind in ["heavy","boss"])
-		visual.set_weapon(1 if kind in ["heavy","boss"] else 0)
-		DamageZone.attach(visual.limbs.head,self,"sensor",Vector3.ZERO,Vector3(.48,.36,.48))
-		DamageZone.attach(visual.limbs.torso,self,"core",Vector3.ZERO,Vector3(.95,.78,.62))
-		for side in ["L","R"]:
-			DamageZone.attach(visual.limbs["upper_arm_"+side],self,"arm",Vector3(0,-.2,0),Vector3(.42,.45,.42))
-			DamageZone.attach(visual.limbs["forearm_"+side],self,"arm",Vector3(0,-.23,0),Vector3(.31,.5,.32))
-			DamageZone.attach(visual.limbs["thigh_"+side],self,"leg",Vector3(0,-.25,0),Vector3(.4,.55,.4))
-			DamageZone.attach(visual.limbs["shin_"+side],self,"leg",Vector3(0,-.23,0),Vector3(.35,.48,.35))
-		core_light=Industrial.light(self,Vector3(0,2,-.7),Color(1,.18,.05),.1,3)
+	capsule.radius={"drone":.48,"android":.66,"heavy":1.18,"boss":1.58}[kind]
+	capsule.height=cfg.height;collision.shape=capsule;collision.position.y=cfg.height*.5;add_child(collision)
+	if kind=="drone":drone=visual
+	DamageZone.attach(visual.limbs.torso,self,"core",Vector3.ZERO,Vector3(cfg.width*.72,.78 if kind=="heavy" else 1.06,cfg.depth*.98))
+	DamageZone.attach(visual.limbs.sensor,self,"sensor",Vector3.ZERO,Vector3(.70,.24,.34))
+	for side in ["L","R"]:
+		if visual.limbs.has("hardpoint_"+side):DamageZone.attach(visual.limbs["hardpoint_"+side],self,"arm",Vector3.ZERO,Vector3(.55,.48,.73))
+	DamageZone.attach(visual.weapon_holder,self,"arm",Vector3(0,0,.05),Vector3(.56,.55,.88))
+	for leg in visual.legs:
+		for segment in ["thigh","shin"]:
+			DamageZone.attach(visual.limbs[segment+"_"+leg.name],self,"leg",Vector3(0,-.53*cfg.leg_scale,0),Vector3(.46*cfg.leg_scale,1.1*cfg.leg_scale,.43*cfg.leg_scale))
+	core_light=Industrial.light(self,Vector3(0,cfg.torso_y,-cfg.depth*.6),Color(1,.18,.05),.12,3)
 
 func _physics_process(delta):
 	if not game.playing or dead or game.capture:return
@@ -91,10 +80,10 @@ func _physics_process(delta):
 		var direction=(last_seen-global_position)
 		var heading=atan2(-direction.x,-direction.z)
 		rotation.y=lerp_angle(rotation.y,heading,1-exp(-delta*5))
-		aim_pitch=atan2(direction.y+1.7-(3 if kind in ["heavy","boss"] else 1.8),maxf(1,Vector2(direction.x,direction.z).length()))
+		aim_pitch=atan2(game.player.global_position.y+2.5-visual.weapon_holder.global_position.y,maxf(1,Vector2(direction.x,direction.z).length()))
 	elif target_velocity.length()>.1:rotation.y=lerp_angle(rotation.y,atan2(-target_velocity.x,-target_velocity.z),delta*3)
 	if visual:
-		visual.animate(delta,global_basis.inverse()*velocity,is_on_floor(),aim_pitch,0,false,zone_damage.leg/max_health)
+		visual.animate(delta,velocity,is_on_floor(),aim_pitch,0,false,zone_damage.leg/max_health)
 		core_light.light_energy=.1+charge*1.5
 	if state=="engage" and cooldown<=0 and stagger<=0:
 		if kind in ["heavy","boss"]:
@@ -108,8 +97,8 @@ func _physics_process(delta):
 	else:charge=0
 
 func think(distance: float):
-	var eye=global_position+Vector3.UP*(.5 if kind=="drone" else 2.2)
-	var target=game.player.global_position+Vector3.UP*1.7
+	var eye=visual.limbs.sensor.global_position
+	var target=game.player.global_position+Vector3.UP*2.4
 	var detection=38 if zone_damage.sensor<max_health*.2 else 20
 	var visible=false
 	if distance<detection:
@@ -149,7 +138,7 @@ func think(distance: float):
 
 func fire():
 	var from=visual.muzzle.global_position
-	var target=game.player.global_position+Vector3.UP*1.4
+	var target=game.player.global_position+Vector3.UP*2.25
 	var accuracy=.026 if kind in ["heavy","boss"] else .08
 	if zone_damage.sensor>max_health*.15:accuracy*=3
 	var direction=(target-from).normalized()+Vector3(randf_range(-accuracy,accuracy),randf_range(-accuracy,accuracy),randf_range(-accuracy,accuracy))
@@ -184,18 +173,17 @@ func destroy():
 	game.effects.explosion(global_position+Vector3.UP*1.2,kind in ["heavy","boss"])
 	game.effects.debris(global_position+Vector3.UP*1.2,8 if kind in ["heavy","boss"] else 5,Industrial.material("metal"))
 	if visual:
-		# Detach selected complete authored mesh parts, not generic corpse cubes.
-		for key in ["head","forearm_L","shin_R"]:
-			var part=visual.limbs[key]
-			var body=RigidBody3D.new();body.collision_layer=32;body.collision_mask=1;body.mass=5
-			var shape=CollisionShape3D.new();var s=BoxShape3D.new();s.size=Vector3(.3,.35,.3);shape.shape=s;body.add_child(shape)
-			game.add_child(body);body.global_transform=part.global_transform
-			part.reparent(body);part.transform=Transform3D.IDENTITY
-			body.linear_velocity=Vector3(randf_range(-3,3),3,randf_range(-3,3))
-			body.angular_velocity=Vector3(2,3,1)
-			get_tree().create_timer(8).timeout.connect(body.queue_free)
-		var tween=create_tween()
-		tween.tween_property(visual,"rotation:x",-1.45,.75).set_trans(Tween.TRANS_QUAD)
-		tween.parallel().tween_property(visual,"position:y",.3,.75)
+		var body=RigidBody3D.new();body.collision_layer=1|32;body.collision_mask=1|16|32
+		body.mass={"drone":35.0,"android":180.0,"heavy":480.0,"boss":1100.0}[kind]
+		body.linear_damp=.5;body.angular_damp=.9
+		var shape=CollisionShape3D.new();var box=BoxShape3D.new()
+		box.size=Vector3(visual.profile.width*.75,.92,visual.profile.depth)
+		shape.shape=box;shape.position.y=visual.profile.torso_y;body.add_child(shape)
+		game.effects.add_child(body);body.global_transform=visual.global_transform
+		visual.reparent(body);visual.transform=Transform3D.IDENTITY;visual.set_first_person(false)
+		body.linear_velocity=Vector3(randf_range(-.6,.6),.9,randf_range(-.6,.6));body.angular_velocity=Vector3(.35,randf_range(-.35,.35),.22)
+		var tween=body.create_tween();tween.tween_method(visual.wreck_pose,0.0,1.0,1.25).set_trans(Tween.TRANS_QUAD)
+		get_tree().create_timer(35).timeout.connect(body.queue_free)
+
 	game.enemy_destroyed(self)
 	get_tree().create_timer(9).timeout.connect(queue_free)

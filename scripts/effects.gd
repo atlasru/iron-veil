@@ -151,3 +151,15 @@ func _process(delta):
 	for entry in muzzle_lights:
 		entry.life-=delta
 		if entry.life<=0:entry.node.hide()
+
+func reset():
+	for list in [traces,particles,debris_bodies]:
+		for entry in list:
+			if is_instance_valid(entry.node):entry.node.queue_free()
+		list.clear()
+	for mark in decals:
+		if is_instance_valid(mark):mark.queue_free()
+	decals.clear()
+	for node in get_children():
+		if node is RigidBody3D or node is CPUParticles3D:node.queue_free()
+	for entry in muzzle_lights:entry.life=0;entry.node.hide()
