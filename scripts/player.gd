@@ -23,7 +23,7 @@ var fire_requested = false
 var ads_touch = false
 var sprint_touch = false
 var jump_requested = false
-var camera_distance = 4.2
+var camera_distance = 7.0
 var camera_fraction = 1.0
 var camera_bob = 0.0
 var kick = Vector2.ZERO
@@ -45,10 +45,10 @@ func _ready():
 	floor_snap_length = .42
 	var collision = CollisionShape3D.new()
 	var capsule = CapsuleShape3D.new()
-	capsule.radius = .43
-	capsule.height = 2.55
+	capsule.radius = .71
+	capsule.height = 3.4
 	collision.shape = capsule
-	collision.position.y = 1.275
+	collision.position.y = 1.7
 	add_child(collision)
 	visual = RobotVisual.new()
 	visual.is_player = true
@@ -108,8 +108,8 @@ func _physics_process(delta):
 	if Settings.values.gyro and (not Settings.values.gyro_ads_only or ads):
 		var gyro=Input.get_gyroscope()
 		look_delta += Vector2(-gyro.y,-gyro.x)*delta*Settings.values.gyro_sensitivity
-	yaw-=look_delta.x*Settings.values.sensitivity
-	pitch=clampf(pitch-look_delta.y*Settings.values.sensitivity*(-1 if Settings.values.invert_y else 1),-1.05,.85)
+	yaw-=look_delta.x*Settings.values.sensitivity*(Settings.values.ads_sensitivity if ads else 1.0)
+	pitch=clampf(pitch-look_delta.y*Settings.values.sensitivity*(Settings.values.ads_sensitivity if ads else 1.0)*(-1 if Settings.values.invert_y else 1),-1.05,.85)
 	look_delta=Vector2.ZERO
 	var direction=Basis(Vector3.UP,yaw)*Vector3(movement.x,0,movement.y)
 	var max_speed=8.5 if sprinting else (3.9 if ads else 5.5)
@@ -156,6 +156,8 @@ func _physics_process(delta):
 			ammo[weapon]=moved.x;reserve[weapon]=moved.y
 	visual.animate(delta,velocity,is_on_floor(),pitch,progress,sprinting)
 	update_camera(delta)
+	var alignment=AimSolver.solve(camera,game.hud.crosshair_point(),visual.muzzle.global_position,get_world_3d().direct_space_state,[get_rid()],visual.weapon_holder.global_position)
+	if visual.weapon_holder.global_position.distance_squared_to(alignment.target)>.01:visual.weapon_holder.look_at(alignment.target)
 	var firing=fire_touch or (fire_requested and weapon!=2) or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.get_joy_axis(0,JOY_AXIS_TRIGGER_RIGHT)>.3
 	fire_requested=false
 	if firing and cooldown<=0 and reload_left<=0 and not sprinting:
@@ -173,8 +175,8 @@ func update_camera(delta):
 	var target_distance=(Settings.values.camera_distance*(.64 if ads else 1)) if third else 0.0
 	camera_distance=lerpf(camera_distance,target_distance,1-exp(-delta*10))
 	var rotation_basis=Basis.from_euler(Vector3(pitch,yaw,0))
-	var eye=global_position+Vector3(0,2.34,0)
-	var shoulder_offset=Settings.values.shoulder*(.68 if third else 0)
+	var eye=global_position+Vector3(0,3.35 if not third else 3.05,0)
+	var shoulder_offset=Settings.values.shoulder*1.45 if third else .65
 	var desired_offset=rotation_basis*Vector3(shoulder_offset,.13 if third else -.03,camera_distance)
 	var space=get_world_3d().direct_space_state
 	var query=PhysicsShapeQueryParameters3D.new()

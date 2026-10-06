@@ -77,12 +77,12 @@ func run():
 	game.hud.release_touches();check(not p.fire_touch and p.move_stick==Vector2.ZERO,"lifecycle releases touches")
 	# Heavy weak points and subsystem effects modify actual AI values.
 	game.spawn("heavy",Vector3(8,.1,5));var e=game.enemies.back();await ticks(1)
-	var arm_at=e.visual.limbs.upper_arm_R.to_global(Vector3(0,-.13,0))
+	var arm_at=e.visual.limbs.hardpoint_R.to_global(Vector3(0,0,0))
 	var arm_query=PhysicsRayQueryParameters3D.create(arm_at-e.global_basis.z*2,arm_at+e.global_basis.z*2,8)
 	arm_query.collide_with_areas=true
 	var arm_hit=p.get_world_3d().direct_space_state.intersect_ray(arm_query)
-	check(arm_hit and arm_hit.collider is DamageZone and arm_hit.collider.zone=="arm","animated arms have reachable localized ray hitboxes")
-	e.take_damage(100,e.visual.to_global(Vector3(.65,1.7,0)),0,Vector3.ZERO)
+	check(arm_hit and arm_hit.collider is DamageZone and arm_hit.collider.zone=="arm","mounted weapon hardpoints have reachable localized ray hitboxes")
+	e.take_damage(100,e.visual.limbs.hardpoint_R.global_position,0,Vector3.ZERO)
 	check(e.zone_damage.arm>0 and e.health<e.max_health,"localized arm damage")
 	e.take_damage(180,e.visual.to_global(Vector3(.1,.5,0)),2,Vector3.ZERO)
 	check(e.zone_damage.leg>e.max_health*.24,"leg subsystem damaged")

@@ -4,8 +4,8 @@ const PATH = "user://settings.json"
 const CHECKPOINT = "user://checkpoint.json"
 const DEFAULTS = {
 "preset": 2, "render_scale": 0.85, "shadows": 2, "effects": 2,
-"aa": 1, "fps_limit": 60, "fov": 78.0, "camera_distance": 4.2,
-"sensitivity": 1.0, "gyro": false, "gyro_sensitivity": 0.8,
+"aa": 1, "fps_limit": 60, "fov": 78.0, "camera_distance": 7.0,
+"sensitivity": 1.0, "ads_sensitivity":0.65, "loadout":0, "schema_version":2, "cinematics":true, "gyro": false, "gyro_sensitivity": 0.8,
 "gyro_ads_only": false, "invert_y": false, "volume": 0.8,
 "shake": 0.6, "third_person": true, "shoulder": 1.0,
 "touch_scale": 1.0, "diagnostics": false, "dynamic_resolution": false
@@ -29,13 +29,17 @@ static func sanitized(data: Dictionary) -> Dictionary:
 	for key in DEFAULTS:
 		if data.has(key) and typeof(data[key]) == typeof(DEFAULTS[key]): result[key] = data[key]
 		elif data.has(key) and data[key] is float and DEFAULTS[key] is int: result[key] = int(data[key])
+	if int(data.get("schema_version",1))<2 and result.camera_distance<=4.2:result.camera_distance=7.0
+	result.schema_version=2
+	result.loadout=clampi(result.loadout,0,2)
+	result.ads_sensitivity=clampf(result.ads_sensitivity,.2,1.5)
 	result.preset = clampi(result.preset, 0, 3)
 	result.render_scale = clampf(result.render_scale, 0.5, 1.0)
 	result.shadows = clampi(result.shadows, 0, 3)
 	result.effects = clampi(result.effects, 0, 3)
 	result.aa = clampi(result.aa, 0, 2)
 	result.fov = clampf(result.fov, 60, 100)
-	result.camera_distance = clampf(result.camera_distance, 2.4, 6.0)
+	result.camera_distance = clampf(result.camera_distance, 3.4, 9.0)
 	result.sensitivity = clampf(result.sensitivity, 0.2, 3.0)
 	result.gyro_sensitivity = clampf(result.gyro_sensitivity, 0.1, 3.0)
 	result.volume = clampf(result.volume, 0, 1)
