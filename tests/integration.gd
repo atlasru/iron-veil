@@ -14,25 +14,29 @@ func _ready():
 func ticks(count: int):
 	for i in count:await get_tree().physics_frame
 
+func idle_frames(count: int):
+	for i in count:await get_tree().process_frame
+
 func run():
 	game.hud.show_menu("main")
-	await ticks(4)
+	await idle_frames(4)
 	var deploy=game.hud.menu.get_child(0).get_child(0)
 	var deploy_at=get_viewport().get_screen_transform()*deploy.get_global_rect().get_center()
 	for pressed in [true,false]:
 		var touch=InputEventScreenTouch.new();touch.index=0;touch.position=deploy_at;touch.pressed=pressed
 		Input.parse_input_event(touch)
-		await ticks(2)
+		Input.flush_buffered_events()
+		await idle_frames(2)
 	check(game.playing and game.hud.menu_kind=="","native touch activates the main menu and starts gameplay")
 	if not game.playing:game.start_game(false)
 	game.hud.mobile=true
 	var before_touch_ammo=game.player.ammo.duplicate()
 	var move_touch=InputEventScreenTouch.new();move_touch.index=0
 	move_touch.position=get_viewport().get_screen_transform()*(Vector2(170,720)*game.hud.scale_ui+game.hud.origin)
-	move_touch.pressed=true;Input.parse_input_event(move_touch);await ticks(2)
+	move_touch.pressed=true;Input.parse_input_event(move_touch);Input.flush_buffered_events();await ticks(3)
 	check(game.player.ammo==before_touch_ammo and not game.player.fire_touch,"touch movement does not become a desktop fire click")
 	var move_release=move_touch.duplicate();move_release.pressed=false
-	Input.parse_input_event(move_release);await ticks(2)
+	Input.parse_input_event(move_release);Input.flush_buffered_events();await ticks(3)
 	var fire_at=get_viewport().get_screen_transform()*(Vector2(1450,640)*game.hud.scale_ui+game.hud.origin)
 	var tap_ammo=game.player.ammo[0]
 	for pressed in [true,false]:
