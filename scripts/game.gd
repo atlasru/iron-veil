@@ -56,6 +56,7 @@ func shutdown(code: int = 0):
 	for node in find_children("*","AudioStreamPlayer3D",true,false):
 		node.stop();node.stream=null
 	for i in 5:await get_tree().process_frame
+	await get_tree().create_timer(.25,true,false,true).timeout
 	get_tree().quit(code)
 
 func start_game(continue_game: bool = false):
@@ -109,7 +110,7 @@ func _unhandled_input(event):
 		elif event.button_index==JOY_BUTTON_B and playing:interact()
 
 func _notification(what):
-	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT,NOTIFICATION_APPLICATION_PAUSED] and playing:pause_game()
+	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT,NOTIFICATION_APPLICATION_PAUSED] and playing and not benchmark and not capture:pause_game()
 	if what==NOTIFICATION_WM_GO_BACK_REQUEST:pause_game()
 
 func pause_game():

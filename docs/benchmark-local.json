@@ -1,0 +1,69 @@
+{
+  "environment": "desktop validation; not Android hardware",
+  "samples": [
+    {
+      "adapter": "llvmpipe (LLVM 20.1.2, 256 bits)",
+      "cpu_process_ms": 104.548,
+      "draw_calls": 757.0,
+      "fps": 7.90842333358736,
+      "frames": 55,
+      "mean_frame_ms": 126.447454545455,
+      "p95_frame_ms": 243.41,
+      "physics_ms": 10.125,
+      "preset": 2,
+      "render_scale": 0.850000023841858,
+      "renderer": "mobile",
+      "resolution": "(1280, 720)",
+      "scenario": "exploration_third",
+      "visible_primitives": 59710.0
+    },
+    {
+      "adapter": "llvmpipe (LLVM 20.1.2, 256 bits)",
+      "cpu_process_ms": 101.795,
+      "draw_calls": 746.0,
+      "fps": 8.88581484283645,
+      "frames": 62,
+      "mean_frame_ms": 112.538919354839,
+      "p95_frame_ms": 137.599,
+      "physics_ms": 2.688,
+      "preset": 2,
+      "render_scale": 0.850000023841858,
+      "renderer": "mobile",
+      "resolution": "(1280, 720)",
+      "scenario": "exploration_first",
+      "visible_primitives": 55816.0
+    },
+    {
+      "adapter": "llvmpipe (LLVM 20.1.2, 256 bits)",
+      "cpu_process_ms": 134.051,
+      "draw_calls": 1161.0,
+      "fps": 6.26473012468094,
+      "frames": 44,
+      "mean_frame_ms": 159.623795454545,
+      "p95_frame_ms": 180.54,
+      "physics_ms": 15.081,
+      "preset": 2,
+      "render_scale": 0.850000023841858,
+      "renderer": "mobile",
+      "resolution": "(1280, 720)",
+      "scenario": "combat_third",
+      "visible_primitives": 128264.0
+    },
+    {
+      "adapter": "llvmpipe (LLVM 20.1.2, 256 bits)",
+      "cpu_process_ms": 133.858,
+      "draw_calls": 1045.0,
+      "fps": 6.36478536812221,
+      "frames": 45,
+      "mean_frame_ms": 157.114488888889,
+      "p95_frame_ms": 192.117,
+      "physics_ms": 23.191,
+      "preset": 2,
+      "render_scale": 0.850000023841858,
+      "renderer": "mobile",
+      "resolution": "(1280, 720)",
+      "scenario": "combat_first",
+      "visible_primitives": 115832.0
+    }
+  ]
+}

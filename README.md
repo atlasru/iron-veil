@@ -8,6 +8,10 @@ Godot **4.6.2**, GDScript, **Vulkan Mobile**, engine physics. MIT.
 Android 7.0 / API 24 minimum; a modern Vulkan-capable device is recommended.
 The packaged APK supports arm64 and x86_64. Landscape, fully offline, no account.
 
+![Third-person robot combat](docs/screenshots/third-person.jpg)
+
+![First-person view](docs/screenshots/first-person.jpg)
+
 ## Play
 
 Install the APK from Releases or the successful Android validation workflow.

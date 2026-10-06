@@ -3,6 +3,6 @@
 build/
 *.keystore
 *.log
-benchmark-*.json
-capture-*
+/benchmark-*.json
+/capture-*
 __pycache__/

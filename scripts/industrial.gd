@@ -59,6 +59,12 @@ static func box(parent: Node3D, at: Vector3, size: Vector3, mat: String = "metal
 		resource.size = size
 		shape.shape = resource
 		root.add_child(shape)
+		if size.x>=2 and size.y>=2 and size.z>=.4:
+			var occluder=OccluderInstance3D.new()
+			var box_occluder=BoxOccluder3D.new()
+			box_occluder.size=size*.97
+			occluder.occluder=box_occluder
+			root.add_child(occluder)
 	return root
 
 static func cylinder(parent: Node3D, at: Vector3, radius: float, length: float, mat: String = "metal", horizontal: bool = false) -> MeshInstance3D:

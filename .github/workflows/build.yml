@@ -22,6 +22,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Validation utilities
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ripgrep xvfb mesa-vulkan-drivers libvulkan1
       - uses: actions/cache@v4
         with:
           path: |
@@ -43,8 +47,6 @@ jobs:
           ! rg 'SCRIPT ERROR|ERROR:' build/integration.log
       - name: Render and benchmark
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq xvfb mesa-vulkan-drivers libvulkan1
           xvfb-run -a timeout 100 .ci-tools/godot/godot --audio-driver Dummy -- --benchmark 2>&1 | tee build/benchmark.log
           cp benchmark-results.json capture-benchmark-*.png build/
           ! rg 'SCRIPT ERROR' build/benchmark.log
@@ -89,6 +91,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - name: Validation utilities
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ripgrep
       - uses: actions/download-artifact@v4
         with:
           name: IRON_VEIL_0.1.0-Android
