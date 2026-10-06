@@ -1,0 +1,36 @@
+name: Toolchain
+on:
+  push:
+    paths: [".github/workflows/toolchain.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  toolchain:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download pinned Godot
+        run: |
+          mkdir -p tools
+          curl --fail --location --retry 3 -o godot.zip https://github.com/godotengine/godot-builds/releases/download/4.6.2-stable/Godot_v4.6.2-stable_linux.x86_64.zip
+          unzip -q godot.zip -d tools
+          mv tools/Godot* tools/godot
+          tools/godot --headless --version
+          curl --fail --location --retry 3 -o templates.zip https://github.com/godotengine/godot-builds/releases/download/4.6.2-stable/Godot_v4.6.2-stable_export_templates.tpz
+          unzip -q templates.zip 'templates/android_debug.apk' 'templates/android_release.apk' -d tools
+          mkdir -p tools/sdk/build-tools
+          cp -r "$ANDROID_HOME/build-tools/35.0.0" tools/sdk/build-tools/
+          mkdir -p tools/sdk/platform-tools
+          cp "$ANDROID_HOME/platform-tools/adb" tools/sdk/platform-tools/
+      - name: Prepare renderer packages
+        run: |
+          sudo apt-get update -qq
+          mkdir -p tools/debs
+          cd tools/debs
+          apt-get download xvfb xserver-common libxfont2 libgl1-mesa-dri mesa-vulkan-drivers libllvm18 libvulkan1 libxcb-xfixes0 libxcb-present0 libxcb-sync1 libxshmfence1 libdrm2 libdrm-amdgpu1 libdrm-radeon1 libdrm-intel1 libgbm1 libegl-mesa0 libglx-mesa0 libglapi-mesa xauth
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iron-veil-toolchain
+          path: tools
+          retention-days: 3
