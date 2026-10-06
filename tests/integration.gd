@@ -15,7 +15,24 @@ func ticks(count: int):
 	for i in count:await get_tree().physics_frame
 
 func run():
-	game.start_game(false)
+	game.hud.show_menu("main")
+	await ticks(4)
+	var deploy=game.hud.menu.get_child(0).get_child(0)
+	var deploy_at=get_viewport().get_screen_transform()*deploy.get_global_rect().get_center()
+	for pressed in [true,false]:
+		var touch=InputEventScreenTouch.new();touch.index=0;touch.position=deploy_at;touch.pressed=pressed
+		Input.parse_input_event(touch)
+		await ticks(2)
+	check(game.playing and game.hud.menu_kind=="","native touch activates the main menu and starts gameplay")
+	if not game.playing:game.start_game(false)
+	game.hud.mobile=true
+	var before_touch_ammo=game.player.ammo.duplicate()
+	var move_touch=InputEventScreenTouch.new();move_touch.index=0
+	move_touch.position=get_viewport().get_screen_transform()*(Vector2(170,720)*game.hud.scale_ui+game.hud.origin)
+	move_touch.pressed=true;Input.parse_input_event(move_touch);await ticks(2)
+	check(game.player.ammo==before_touch_ammo and not game.player.fire_touch,"touch movement does not become a desktop fire click")
+	var move_release=move_touch.duplicate();move_release.pressed=false
+	Input.parse_input_event(move_release);await ticks(2)
 	await ticks(20)
 	var p=game.player
 	check(game.enemies.size()==4,"initial combat encounter")

@@ -45,6 +45,11 @@ func _ready():
 	add_child(ambience);ambience.position=Vector3(0,2,-40)
 	ambience.finished.connect(ambience.play);ambience.play()
 	print("IRON_VEIL_READY / "+RenderingServer.get_current_rendering_method())
+	if OS.has_feature("mobile"):call_deferred("report_presented")
+
+func report_presented():
+	for i in 3:await RenderingServer.frame_post_draw
+	print("IRON_VEIL_PRESENTED / "+RenderingServer.get_current_rendering_method())
 
 func _exit_tree():
 	Industrial.materials.clear()

@@ -52,11 +52,17 @@ Ultra is explicitly experimental. This report is not a thermal certification.
 
 ## Runtime validation
 
-26 logic checks; 22 scene integration checks cover actual movement, jump/landing,
-stairs, perspective invariants, three concurrent touches, reachable animated arm
+26 logic checks; 24 scene integration checks cover actual movement, jump/landing,
+stairs, native menu touch activation, movement without accidental mouse fire,
+perspective invariants, three concurrent touches, reachable animated arm
 hitboxes, localized damage, camera collision, obstruction rays, checkpoint doors,
 Warden interlock and mission completion. Actual Vulkan frames were inspected.
 
 The CI Android job installs the real APK into an API 35 x86_64 emulator and records
 launcher, gameplay, perspective and resume screenshots plus logcat. Physical-device
 validation is outstanding. APK signatures and both included ABIs are verified.
+
+Android Swappy frame pacing is disabled to work around the Godot 4.6.x
+emulator present failure ([engine issue #121035](https://github.com/godotengine/godot/issues/121035)).
+Engine FPS limiting and display vsync remain enabled. Hardware pacing must be
+measured before claiming the 60 FPS target.

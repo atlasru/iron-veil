@@ -219,6 +219,8 @@ func button(parent: Node, value: String, callback: Callable):
 
 func show_menu(kind: String):
 	menu_kind=kind
+	# Native Controls need mouse emulation; gameplay keeps independent touch IDs.
+	Input.emulate_mouse_from_touch=kind!=""
 	if menu:menu.queue_free();menu=null
 	if kind=="":return
 	menu=Control.new();add_child(menu)

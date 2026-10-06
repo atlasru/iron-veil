@@ -10,13 +10,13 @@ adb shell settings put global animator_duration_scale 0
 adb shell settings put secure immersive_mode_confirmations confirmed
 activity=$(adb shell cmd package resolve-activity --brief "$pkg" | tr -d '\r' | tail -n 1)
 adb shell am start -W -n "$activity"
-for attempt in $(seq 1 40); do
-  adb logcat -d > build/android-logcat.txt
-  if rg -q IRON_VEIL_READY build/android-logcat.txt; then break; fi
+for attempt in $(seq 1 90); do
+	adb logcat -d > build/android-logcat.txt
+  if rg -q IRON_VEIL_PRESENTED build/android-logcat.txt; then break; fi
   sleep 2
 done
 adb logcat -d > build/android-logcat.txt
-rg IRON_VEIL_READY build/android-logcat.txt
+rg IRON_VEIL_PRESENTED build/android-logcat.txt
 adb shell input tap 1140 500
 sleep 4
 adb shell pidof "$pkg"
@@ -41,5 +41,5 @@ sleep 3
 adb exec-out screencap -p > build/android-resume.png
 adb shell pidof "$pkg"
 adb logcat -d > build/android-logcat.txt
-if rg 'FATAL EXCEPTION|SCRIPT ERROR|Fatal signal' build/android-logcat.txt; then exit 1; fi
+if rg 'FATAL EXCEPTION|SCRIPT ERROR|Fatal signal|QueuePresentKHR failed' build/android-logcat.txt; then exit 1; fi
 echo 'Android install / launch / touch movement / perspective / background-resume passed.'
