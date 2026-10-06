@@ -47,7 +47,7 @@ jobs:
           ! rg 'SCRIPT ERROR|ERROR:' build/integration.log
       - name: Render and benchmark
         run: |
-          xvfb-run -a timeout 100 .ci-tools/godot/godot --audio-driver Dummy -- --benchmark 2>&1 | tee build/benchmark.log
+          xvfb-run -a timeout 150 .ci-tools/godot/godot --audio-driver Dummy -- --benchmark 2>&1 | tee build/benchmark.log
           cp benchmark-results.json capture-benchmark-*.png build/
           ! rg 'SCRIPT ERROR' build/benchmark.log
       - name: Export Android APK

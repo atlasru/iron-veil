@@ -17,6 +17,8 @@ var frame_samples: Array[float] = []
 var benchmark_frames = 0
 var benchmark_phase = 0
 var benchmark_clock = 0.0
+var benchmark_warmed = false
+var benchmark_warmup_seconds = 0.0
 var last_frame_usec = 0
 var benchmark_data: Array = []
 var dynamic_clock = 0.0
@@ -132,10 +134,13 @@ func resume_game():
 	print("IRON_VEIL_RESUMED")
 
 func interact():
+	if stage<0 or stage>=FacilityLevel.OBJECTIVES.size():return
 	var distance=player.global_position.distance_to(FacilityLevel.OBJECTIVES[stage])
-	if distance>=4.5:return
-	if stage==3 and alive_for_stage(3)>0:
-		hud.message("INTERLOCK / Eliminate the Warden and its escorts",3);Sound.ui();return
+	var remaining=alive_for_stage(stage) if stage==3 else 0
+	if not CombatRules.valid_stage(stage,distance,remaining):
+		if stage==3 and distance<4.5:
+			hud.message("INTERLOCK / Eliminate the Warden and its escorts",3);Sound.ui()
+		return
 	Sound.ui()
 	if stage==3:
 		Settings.clear_checkpoint();game_over(true);return
@@ -207,14 +212,18 @@ func run_benchmark(delta: float):
 	var now=Time.get_ticks_usec()
 	var wall_ms=(now-last_frame_usec)/1000.0 if last_frame_usec>0 else 0.0
 	last_frame_usec=now
-	var before=benchmark_clock
 	benchmark_clock+=wall_ms/1000.0
 	player.integrity=player.max_integrity
 	player.invulnerable=1
 	player.fire_touch=benchmark_phase>=2
 	player.move_stick=Vector2(sin(elapsed*.6)*.5,0) if benchmark_phase==0 else Vector2.ZERO
-	if before>2:frame_samples.append(wall_ms)
-	if benchmark_clock>9 and frame_samples.size()>3:
+	if not benchmark_warmed:
+		if benchmark_clock>=2:
+			benchmark_warmup_seconds=benchmark_clock
+			benchmark_warmed=true;benchmark_clock=0
+		return
+	frame_samples.append(wall_ms)
+	if benchmark_clock>=7 and frame_samples.size()>3:
 		frame_samples.sort()
 		var average=0.0
 		for value in frame_samples:average+=value
@@ -222,9 +231,11 @@ func run_benchmark(delta: float):
 		var metrics={"scenario":["exploration_third","exploration_first","combat_third","combat_first"][benchmark_phase],"frames":frame_samples.size(),"mean_frame_ms":average,"p95_frame_ms":frame_samples[mini(frame_samples.size()-1,int(frame_samples.size()*.95))],"fps":1000/maxf(.01,average),"draw_calls":Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),"visible_primitives":Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME),"cpu_process_ms":Performance.get_monitor(Performance.TIME_PROCESS)*1000,"physics_ms":Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000,"render_scale":get_viewport().scaling_3d_scale,"preset":Settings.values.preset,"resolution":str(get_viewport().size),"renderer":RenderingServer.get_current_rendering_method(),"adapter":RenderingServer.get_video_adapter_name()}
 		benchmark_data.append(metrics)
 		metrics["view"]="third_person" if Settings.values.third_person else "first_person"
+		metrics["warmup_seconds"]=benchmark_warmup_seconds
+		metrics["sample_seconds"]=benchmark_clock
 		print("BENCHMARK "+JSON.stringify(metrics))
 		if not DisplayServer.get_name()=="headless":get_viewport().get_texture().get_image().save_png("res://capture-benchmark-"+str(benchmark_phase)+".png")
-		benchmark_phase+=1;benchmark_clock=0;frame_samples.clear()
+		benchmark_phase+=1;benchmark_clock=0;benchmark_warmed=false;frame_samples.clear()
 		Settings.values.third_person=benchmark_phase%2==0
 		if benchmark_phase==2:
 			for i in 8:spawn("android" if i%3 else "heavy",Vector3(-9+i*2.5,.1,-15-i%2*7))

@@ -33,6 +33,14 @@ func run():
 	check(game.player.ammo==before_touch_ammo and not game.player.fire_touch,"touch movement does not become a desktop fire click")
 	var move_release=move_touch.duplicate();move_release.pressed=false
 	Input.parse_input_event(move_release);await ticks(2)
+	var fire_at=get_viewport().get_screen_transform()*(Vector2(1450,640)*game.hud.scale_ui+game.hud.origin)
+	var tap_ammo=game.player.ammo[0]
+	for pressed in [true,false]:
+		var fire_event=InputEventScreenTouch.new();fire_event.index=0;fire_event.position=fire_at;fire_event.pressed=pressed
+		Input.parse_input_event(fire_event)
+	Input.flush_buffered_events()
+	await ticks(3)
+	check(game.player.ammo[0]==tap_ammo-1,"native fire tap between physics steps produces one shot")
 	await ticks(20)
 	var p=game.player
 	check(game.enemies.size()==4,"initial combat encounter")

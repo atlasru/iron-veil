@@ -176,7 +176,9 @@ func _input(event):
 
 func perform(action: String, down: bool):
 	match action:
-		"fire":game.player.fire_touch=down
+		"fire":
+			game.player.fire_touch=down
+			if down:game.player.fire_requested=true
 		"ads":game.player.ads_touch=down
 		"move":
 			if not down:game.player.move_stick=Vector2.ZERO;stick_origin=Vector2(180,726);stick_point=stick_origin

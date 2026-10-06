@@ -6,18 +6,19 @@ Window 1280×720, High preset, 85% 3D render scale, MSAA 2x, 70m shadows.
 The renderer is CPU-emulated; these measurements do not predict Nothing Phone (3)
 FPS. No physical Android hardware was attached.
 
-Four scenarios run for approximately nine seconds each: two seconds warm-up,
-then seven seconds sampling. Heavy combat adds eight android/heavy opponents
+Four scenarios use at least two seconds of warm-up, followed by at least seven
+seconds of sampling. Slow shader compilation may extend warm-up; actual durations
+are recorded separately in the JSON. Heavy combat adds eight android/heavy opponents
 in addition to the initial encounter, with invulnerability during measurement.
 Values below use monotonic **wall-clock frame intervals**, not Godot's clamped
 simulation delta. Draw calls and primitives are final-frame counters, not averages.
 
 | Scenario | FPS | Mean frame ms | P95 ms | Draw calls | Primitives |
 |---|---:|---:|---:|---:|---:|
-| exploration_third | 4.65 | 215.13 | 605.98 | 805 | 66334 |
-| exploration_first | 9.30 | 107.57 | 125.69 | 758 | 63990 |
-| combat_third | 2.20 | 453.63 | 1071.41 | 1098 | 126686 |
-| combat_first | 4.63 | 216.08 | 415.56 | 1016 | 126842 |
+| exploration_third | 6.71 | 149.09 | 315.06 | 786 | 65074 |
+| exploration_first | 6.60 | 151.53 | 349.75 | 754 | 62822 |
+| combat_third | 5.96 | 167.82 | 253.33 | 1112 | 128380 |
+| combat_first | 6.80 | 147.03 | 177.56 | 994 | 106370 |
 
 Raw local data: [benchmark-local.json](benchmark-local.json). Every CI run
 uploads its own environment-labelled JSON and actual viewport captures. They
@@ -52,8 +53,8 @@ Ultra is explicitly experimental. This report is not a thermal certification.
 
 ## Runtime validation
 
-26 logic checks; 24 scene integration checks cover actual movement, jump/landing,
-stairs, native menu touch activation, movement without accidental mouse fire,
+26 logic checks; 25 scene integration checks cover actual movement, jump/landing,
+stairs, native menu touch activation, movement without accidental mouse fire, captured fire taps between physics steps,
 perspective invariants, three concurrent touches, reachable animated arm
 hitboxes, localized damage, camera collision, obstruction rays, checkpoint doors,
 Warden interlock and mission completion. Actual Vulkan frames were inspected.

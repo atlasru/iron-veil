@@ -107,7 +107,8 @@ godot --audio-driver Dummy -- --benchmark
 
 These development switches write actual viewport captures and JSON measurements.
 Benchmark combat adds eight enemies; the player is invulnerable during measurement.
-Two seconds of warm-up precede each seven-second sample window.
+At least two seconds of warm-up precede each full seven-second sample window.
+Actual warm-up and sample durations are recorded in the JSON.
 
 CI compiles resources, runs unit/integration tests, renders the benchmark,
 exports/verifies the APK and installs it into an Android API 35 emulator. The

@@ -10,7 +10,7 @@ shared 1P/3P modes, camera collision/shoulders, three distinct weapons, localize
 damage, tactical combat AI, physical/explosive cargo, mechanical disassembly,
 touch/gyro/gamepad support, checkpoints and four functional graphics presets.
 
-Validation: 26 logic checks and 24 full-scene runtime checks; Vulkan viewport
+Validation: 26 logic checks and 25 full-scene runtime checks; Vulkan viewport
 captures and wall-clock benchmark; APK signature verification; Android API 35
 emulator installation, launcher start, touch deployment/movement, perspective
 switch and background/resume. Full logs and measurements are workflow artifacts.

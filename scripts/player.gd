@@ -19,6 +19,7 @@ var sprinting = false
 var move_stick = Vector2.ZERO
 var look_delta = Vector2.ZERO
 var fire_touch = false
+var fire_requested = false
 var ads_touch = false
 var sprint_touch = false
 var jump_requested = false
@@ -32,6 +33,7 @@ var sphere = SphereShape3D.new()
 var was_grounded = false
 var last_fall_speed = 0.0
 var benchmark_mode = false
+var view_pending = false
 var stats = {"shots":0,"hits":0,"damage_received":0.0}
 
 func _ready():
@@ -145,7 +147,8 @@ func _physics_process(delta):
 			var moved=CombatRules.reload_transfer(ammo[weapon],reserve[weapon],CombatRules.WEAPONS[weapon].mag)
 			ammo[weapon]=moved.x;reserve[weapon]=moved.y
 	visual.animate(delta,velocity,is_on_floor(),pitch,progress,sprinting)
-	var firing=fire_touch or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.get_joy_axis(0,JOY_AXIS_TRIGGER_RIGHT)>.3
+	var firing=fire_touch or (fire_requested and weapon!=2) or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.get_joy_axis(0,JOY_AXIS_TRIGGER_RIGHT)>.3
+	fire_requested=false
 	if firing and cooldown<=0 and reload_left<=0 and not sprinting:
 		if ammo[weapon]<=0:reload_weapon()
 		elif weapon==2:
@@ -182,14 +185,21 @@ func _process(delta):
 	var noise=Vector3(sin(Time.get_ticks_msec()*.08),cos(Time.get_ticks_msec()*.07),0)*shake*.008*Settings.values.shake
 	camera.rotation=Vector3(pitch+kick.x+noise.x,yaw+kick.y+noise.y,0)
 	camera.fov=lerpf(camera.fov,Settings.values.fov*(.72 if ads else (1.07 if sprinting else 1)),1-exp(-delta*12))
-	visual.set_first_person(camera_distance<.75)
+	visual.set_first_person(not third or camera_distance*camera_fraction<.75)
+	if view_pending and absf(camera_distance-target_distance)<.08:
+		view_pending=false
+		call_deferred("report_view_ready",third)
+
+func report_view_ready(third: bool):
+	if DisplayServer.get_name()!="headless":await RenderingServer.frame_post_draw
+	print("IRON_VEIL_VIEW_SETTLED / "+("3P" if third else "1P"))
 
 func shoot():
 	var spec=CombatRules.WEAPONS[weapon]
 	ammo[weapon]-=1
 	cooldown=spec.interval
 	stats.shots+=1
-	if OS.is_debug_build() and stats.shots==1:print("IRON_VEIL_FIRE / "+spec.short)
+	if stats.shots==1:print("IRON_VEIL_FIRE / "+spec.short)
 	visual.recoil=.8 if weapon else .35
 	kick+=Vector2(spec.kick,randf_range(-spec.kick*.3,spec.kick*.3))
 	shake=spec.kick*4
@@ -237,6 +247,7 @@ func switch_weapon(index: int):
 
 func switch_perspective():
 	Settings.values.third_person=not Settings.values.third_person
+	view_pending=true
 	print("IRON_VEIL_VIEW / "+("3P" if Settings.values.third_person else "1P"))
 	Settings.save()
 	Sound.ui()
@@ -257,4 +268,4 @@ func take_damage(amount: float, attacker: Vector3):
 
 func clear_input():
 	move_stick=Vector2.ZERO;look_delta=Vector2.ZERO
-	fire_touch=false;ads_touch=false;sprint_touch=false;jump_requested=false;charge=0
+	fire_touch=false;fire_requested=false;ads_touch=false;sprint_touch=false;jump_requested=false;charge=0
