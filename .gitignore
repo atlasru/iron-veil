@@ -1,0 +1,8 @@
+.godot/
+.ci-tools/
+build/
+*.keystore
+*.log
+/benchmark-*.json
+/capture-*
+__pycache__/
