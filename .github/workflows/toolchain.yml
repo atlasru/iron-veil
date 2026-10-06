@@ -14,9 +14,9 @@ jobs:
           sudo apt-get update -qq
           mkdir -p tools/debs
           cd tools/debs
-          apt-get download x11-xkb-utils libxmuu1 mesa-libgallium
+          apt-get download libxkbfile1
       - uses: actions/upload-artifact@v4
         with:
-          name: iron-veil-renderer-deps
+          name: iron-veil-xkb
           path: tools
           retention-days: 3
