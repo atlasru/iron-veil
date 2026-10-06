@@ -88,6 +88,7 @@ MATERIALS=[
  {'name':'Copper hydraulics','pbrMetallicRoughness':{'baseColorFactor':[.72,.38,.12,1],'metallicFactor':.84,'roughnessFactor':.31}},
  {'name':'Signal lime','pbrMetallicRoughness':{'baseColorFactor':[.58,.93,.28,1],'metallicFactor':.25,'roughnessFactor':.27},'emissiveFactor':[.55,1,.22]},
  {'name':'Ballistic steel','pbrMetallicRoughness':{'baseColorFactor':[.17,.22,.23,1],'metallicFactor':.9,'roughnessFactor':.38}},
+ {'name':'Batched armor','pbrMetallicRoughness':{'baseColorFactor':[1,1,1,1],'metallicFactor':.75,'roughnessFactor':.46}},
 ]
 
 def glb(path,nodes):
@@ -101,12 +102,20 @@ def glb(path,nodes):
         return len(accessors)-1
     for name,builder,pos in nodes:
         prims=[]
-        for mat in sorted(set(m for m,t in builder.parts)):
-            tris=np.concatenate([t for m,t in builder.parts if m==mat])
+        # Vertex colors batch all opaque mechanical materials into one surface.
+        # Emitters retain a separate surface for real PBR emission.
+        for emitter in [False,True]:
+            parts=[(m,t) for m,t in builder.parts if (m==3)==emitter]
+            if not parts: continue
+            tris=np.concatenate([t for m,t in parts])
             normals=np.cross(tris[:,1]-tris[:,0],tris[:,2]-tris[:,0]);normals/=np.linalg.norm(normals,axis=1,keepdims=True)
             verts=tris.reshape(-1,3);normals=np.repeat(normals,3,axis=0)
             uv=verts[:,[0,1]]*.7
-            prims.append({'attributes':{'POSITION':array(verts,'VEC3'),'NORMAL':array(normals,'VEC3'),'TEXCOORD_0':array(uv,'VEC2')},'material':mat})
+            attrs={'POSITION':array(verts,'VEC3'),'NORMAL':array(normals,'VEC3'),'TEXCOORD_0':array(uv,'VEC2')}
+            if not emitter:
+                colors=np.concatenate([np.tile(MATERIALS[m]['pbrMetallicRoughness']['baseColorFactor'],(len(t)*3,1)) for m,t in parts])
+                attrs['COLOR_0']=array(colors,'VEC4')
+            prims.append({'attributes':attrs,'material':3 if emitter else 5})
         meshes.append({'name':name,'primitives':prims})
         gnodes.append({'name':name,'mesh':len(meshes)-1,'translation':pos})
     doc={'asset':{'version':'2.0','generator':'IRON//VEIL original procedural art'},'scene':0,'scenes':[{'nodes':list(range(len(gnodes)))}],'nodes':gnodes,'meshes':meshes,'materials':MATERIALS,'accessors':accessors,'bufferViews':views,'buffers':[{'byteLength':len(data)}]}

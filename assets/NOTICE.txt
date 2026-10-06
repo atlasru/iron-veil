@@ -1,0 +1,13 @@
+IRON//VEIL 0.1.0
+Copyright (c) 2026 atlasru. MIT License.
+
+Game code, Wraith robot, weapon meshes, industrial level, PBR textures,
+effects, icon and sounds are original procedural creations distributed
+under the repository's MIT License. Generator: tools/make_assets.py.
+No proprietary Frontiers assets, audio, maps, code or characters are used.
+
+Godot Engine 4.6.2: MIT License. See GODOT_LICENSE.txt.
+Godot bundled third-party component notices: see GODOT_COPYRIGHT.txt.
+
+Development-only Python dependencies: numpy (BSD), Pillow (HPND),
+scipy (BSD). These packages are not bundled with the Android application.

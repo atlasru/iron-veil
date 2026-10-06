@@ -10,6 +10,8 @@ var phase = 0.0
 var recoil = 0.0
 var hit = 0.0
 var foot_phase = [false, false]
+var planted = [false, false]
+var planted_world = [Vector3.ZERO, Vector3.ZERO]
 var original: Dictionary = {}
 var disabled: Dictionary = {}
 var is_player = false
@@ -25,10 +27,9 @@ func _ready():
 				for i in part.mesh.get_surface_count():
 					var material_source=part.mesh.surface_get_material(i)
 					if material_source is StandardMaterial3D and not material_source.emission_enabled:
-						var worn=material_source.duplicate()
-						worn.albedo_texture=preload("res://assets/armor.png") if material_source.albedo_color.r>.5 else preload("res://assets/metal.png")
-						worn.uv1_triplanar=true
-						worn.uv1_scale=Vector3.ONE*2.7
+						var worn=ShaderMaterial.new()
+						worn.shader=preload("res://shaders/armor.gdshader")
+						worn.set_shader_parameter("wear_texture",preload("res://assets/armor.png"))
 						part.set_surface_override_material(i,worn)
 	weapon_holder = Node3D.new()
 	add_child(weapon_holder)
@@ -50,6 +51,10 @@ func tint_enemy(heavy: bool = false):
 		if node is MeshInstance3D:
 			for i in node.mesh.get_surface_count():
 				var source = node.get_active_material(i)
+				if source is ShaderMaterial:
+					var tinted=source.duplicate()
+					tinted.set_shader_parameter("armor_tint",Vector3(.64,.36,.2) if heavy else Vector3(.62,.7,.74))
+					node.set_surface_override_material(i,tinted)
 				if source is StandardMaterial3D:
 					var material_copy = source.duplicate()
 					if material_copy.emission_enabled:
@@ -61,7 +66,7 @@ func tint_enemy(heavy: bool = false):
 
 func animate(delta: float, motion: Vector3, grounded: bool, aim_pitch: float, reload_progress: float = 0, sprint: bool = false, leg_damage: float = 0):
 	var speed = Vector2(motion.x,motion.z).length()
-	phase += delta * speed * 2.5
+	phase += delta * speed * 3.4
 	recoil = move_toward(recoil,0,delta*3)
 	hit = move_toward(hit,0,delta*4)
 	var local = basis.inverse() * motion
@@ -87,8 +92,15 @@ func animate(delta: float, motion: Vector3, grounded: bool, aim_pitch: float, re
 			var result = get_world_3d().direct_space_state.intersect_ray(query)
 			if result:
 				target.y += clampf(to_local(result.position).y,-.23,.45)
+		var stance=grounded and speed>.2 and cos(cycle)<0
+		if stance:
+			if not planted[i]:planted_world[i]=to_global(target)
+			target=to_local(planted_world[i])
+			var horizontal=Vector2(target.x-sign_x*.3,target.z).limit_length(.55)
+			target.x=sign_x*.3+horizontal.x;target.z=horizontal.y
+		planted[i]=stance
 		var hip = Vector3(sign_x*.3,1.24+body_bob,0)
-		var knee = solve_knee(hip,target,.53,.54)
+		var knee = solve_knee(hip,target,.63,.63)
 		pose_segment(limbs["thigh_"+side],hip,knee)
 		pose_segment(limbs["shin_"+side],knee,target)
 		limbs["foot_"+side].position = target
@@ -127,6 +139,8 @@ static func pose_segment(node: Node3D, start: Vector3, end: Vector3):
 	node.position = start
 	var direction = (end-start).normalized()
 	node.quaternion = Quaternion(Vector3.DOWN,direction)
+	var length_reference=.53 if str(node.name).begins_with("thigh") else (.54 if str(node.name).begins_with("shin") else .5)
+	node.scale.y=(end-start).length()/length_reference
 
 func set_first_person(active: bool):
 	for key in ["head","torso"]:
@@ -148,6 +162,10 @@ func damage_visual(zone: String, severity: float):
 		var target: MeshInstance3D = limbs[part]
 		for i in target.mesh.get_surface_count():
 			var m = target.get_active_material(i)
+			if m is ShaderMaterial:
+				var damaged_shader=m.duplicate()
+				damaged_shader.set_shader_parameter("damage",.95)
+				target.set_surface_override_material(i,damaged_shader)
 			if m is StandardMaterial3D:
 				var damaged = m.duplicate()
 				damaged.albedo_color *= Color(.32,.35,.36)

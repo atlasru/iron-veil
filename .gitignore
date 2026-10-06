@@ -4,5 +4,5 @@ build/
 *.keystore
 *.log
 benchmark-*.json
-capture-*.png
+capture-*
 __pycache__/

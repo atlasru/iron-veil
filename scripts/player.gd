@@ -236,6 +236,7 @@ func switch_weapon(index: int):
 
 func switch_perspective():
 	Settings.values.third_person=not Settings.values.third_person
+	print("IRON_VEIL_VIEW / "+("3P" if Settings.values.third_person else "1P"))
 	Settings.save()
 	Sound.ui()
 

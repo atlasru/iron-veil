@@ -17,6 +17,7 @@ var frame_samples: Array[float] = []
 var benchmark_frames = 0
 var benchmark_phase = 0
 var benchmark_clock = 0.0
+var last_frame_usec = 0
 var benchmark_data: Array = []
 var dynamic_clock = 0.0
 const OBJECTIVE_TEXT = ["RELAY YARD / Activate the uplink", "COOLANT CONTROL / Override the pumps", "CORE HALL / Disable the containment lock", "EXTRACTION / Destroy Warden and transmit"]
@@ -42,6 +43,7 @@ func _ready():
 	var ambience=AudioStreamPlayer3D.new();ambience.stream=Sound.streams.ambient;ambience.volume_db=-12;ambience.unit_size=70
 	add_child(ambience);ambience.position=Vector3(0,2,-40)
 	ambience.finished.connect(ambience.play);ambience.play()
+	print("IRON_VEIL_READY / "+RenderingServer.get_current_rendering_method())
 
 func _exit_tree():
 	Industrial.materials.clear()
@@ -78,6 +80,7 @@ func start_game(continue_game: bool = false):
 	hud.message("WRAITH ONLINE / Find the uplink",4)
 	if not OS.has_feature("mobile") and not capture and not benchmark:Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
 	spawn_stage(stage)
+	print("IRON_VEIL_MISSION / stage "+str(stage))
 
 func spawn(kind: String, at: Vector3):
 	var enemy=EnemyRobot.new();enemy.game=self;enemy.kind=kind;enemy.position=at;enemy.set_meta("stage",stage)
@@ -193,13 +196,17 @@ func _process(delta):
 			get_viewport().scaling_3d_scale=clampf(scale,.5,Settings.values.render_scale)
 
 func run_benchmark(delta: float):
-	benchmark_clock+=delta
+	var now=Time.get_ticks_usec()
+	var wall_ms=(now-last_frame_usec)/1000.0 if last_frame_usec>0 else 0.0
+	last_frame_usec=now
+	var before=benchmark_clock
+	benchmark_clock+=wall_ms/1000.0
 	player.integrity=player.max_integrity
 	player.invulnerable=1
 	player.fire_touch=benchmark_phase>=2
 	player.move_stick=Vector2(sin(elapsed*.6)*.5,0) if benchmark_phase==0 else Vector2.ZERO
-	if benchmark_clock>2:frame_samples.append(delta*1000)
-	if benchmark_clock>9:
+	if before>2:frame_samples.append(wall_ms)
+	if benchmark_clock>9 and frame_samples.size()>3:
 		frame_samples.sort()
 		var average=0.0
 		for value in frame_samples:average+=value

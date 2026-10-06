@@ -31,7 +31,6 @@ func run():
 	check(p.is_on_floor(),"heavy landing returns to floor")
 	p.global_position=Vector3(-21,.1,9);p.velocity=Vector3.ZERO;p.move_stick=Vector2(0,-1)
 	await ticks(125)
-	print("STAIR POSITION "+str(p.global_position)+" VELOCITY "+str(p.velocity))
 	check(p.global_position.y>2.5,"climb real stair geometry onto catwalk")
 	p.move_stick=Vector2.ZERO;p.global_position=FacilityLevel.SPAWNS[0];p.velocity=Vector3.ZERO
 	await ticks(20)

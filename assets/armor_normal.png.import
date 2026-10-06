@@ -3,15 +3,17 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cyvm2y6scadiq"
-path="res://.godot/imported/armor_normal.png-80f319401578a4fabdbdf3bede7dea01.ctex"
+path.s3tc="res://.godot/imported/armor_normal.png-80f319401578a4fabdbdf3bede7dea01.s3tc.ctex"
+path.etc2="res://.godot/imported/armor_normal.png-80f319401578a4fabdbdf3bede7dea01.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/armor_normal.png"
-dest_files=["res://.godot/imported/armor_normal.png-80f319401578a4fabdbdf3bede7dea01.ctex"]
+dest_files=["res://.godot/imported/armor_normal.png-80f319401578a4fabdbdf3bede7dea01.s3tc.ctex", "res://.godot/imported/armor_normal.png-80f319401578a4fabdbdf3bede7dea01.etc2.ctex"]
 
 [params]
 

@@ -31,8 +31,16 @@ func _ready():
 	mobile=OS.has_feature("mobile") or "--touch" in OS.get_cmdline_user_args()
 
 func _process(delta):
-	scale_ui=minf(size.x/1600,size.y/900)
-	origin=(size-Vector2(1600,900)*scale_ui)*.5
+	var available=size
+	var safe_origin=Vector2.ZERO
+	if OS.has_feature("mobile"):
+		var physical=Vector2(DisplayServer.screen_get_size())
+		var safe=DisplayServer.get_display_safe_area()
+		if physical.x>0 and physical.y>0 and safe.size.x>0 and safe.size.y>0:
+			available=Vector2(safe.size)*size/physical
+			safe_origin=Vector2(safe.position)*size/physical
+	scale_ui=minf(available.x/1600,available.y/900)
+	origin=safe_origin+(available-Vector2(1600,900)*scale_ui)*.5
 	if menu:
 		menu.position=Vector2(63,285)*scale_ui+origin
 		menu.scale=Vector2.ONE*scale_ui
@@ -129,6 +137,8 @@ func message(value: String, seconds: float):
 	message_text=value;message_left=seconds
 
 func _input(event):
+	if menu_kind=="pause" and ((event is InputEventKey and event.pressed and event.physical_keycode==KEY_ESCAPE) or (event is InputEventJoypadButton and event.pressed and event.button_index==JOY_BUTTON_START)):
+		game.resume_game();get_viewport().set_input_as_handled();return
 	if menu_kind!="" or not game.playing:return
 	if event is InputEventScreenTouch:
 		var point=(event.position-origin)/scale_ui

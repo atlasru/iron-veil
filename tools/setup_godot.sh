@@ -10,6 +10,7 @@ if [ ! -x .ci-tools/godot/godot ]; then
   chmod +x .ci-tools/godot/godot
 fi
 .ci-tools/godot/godot --headless --version
+echo '5a806b2b385279d9607094d33e946ed828e9606df4cb46d258ca27468dc5c1c9  .ci-tools/godot/godot' | sha256sum --check
 if [ ! -f .ci-tools/templates/templates/android_debug.apk ]; then
   curl --fail --location --retry 3 -o .ci-tools/templates.zip "https://github.com/godotengine/godot-builds/releases/download/${version}-stable/Godot_v${version}-stable_export_templates.tpz"
   unzip -qo .ci-tools/templates.zip 'templates/android_debug.apk' 'templates/android_release.apk' -d .ci-tools/templates
