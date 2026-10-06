@@ -52,6 +52,9 @@ func _process(delta):
 func text(value: String, at: Vector2, pixels: int, color: Color=INK):
 	draw_string(font,at,value,HORIZONTAL_ALIGNMENT_LEFT,-1,pixels,color)
 
+func crosshair_point() -> Vector2:
+	return get_viewport().get_visible_rect().get_center()
+
 func _draw():
 	if not game.player:return
 	draw_set_transform(origin,0,Vector2.ONE*scale_ui)
@@ -61,7 +64,7 @@ func _draw():
 		text(game.OBJECTIVE_TEXT[game.stage],Vector2(40,88),21)
 		var distance=p.global_position.distance_to(FacilityLevel.OBJECTIVES[game.stage])
 		text("UPLINK   "+str(roundi(distance))+" m",Vector2(40,114),16,DIM)
-		var center=Vector2(800,450)
+		var center=(crosshair_point()-origin)/scale_ui
 		var gap=6+CombatRules.WEAPONS[p.weapon].spread*180+(4 if p.sprinting else 0)
 		for dir in [Vector2.LEFT,Vector2.RIGHT,Vector2.UP,Vector2.DOWN]:draw_line(center+dir*gap,center+dir*(gap+9),INK,1.5,true)
 		draw_circle(center,1.5,LIME)

@@ -35,6 +35,8 @@ var last_fall_speed = 0.0
 var benchmark_mode = false
 var view_pending = false
 var stats = {"shots":0,"hits":0,"damage_received":0.0}
+var aim_debug: AimDebugger
+var last_shots: Array = []
 
 func _ready():
 	collision_layer = 2
@@ -59,6 +61,10 @@ func _ready():
 	sphere.radius = .22
 	camera_distance = Settings.values.camera_distance if Settings.values.third_person else 0
 	yaw = 0
+	aim_debug = AimDebugger.new()
+	game.add_child(aim_debug)
+	aim_debug.visible = OS.is_debug_build() and "--aim-debug" in OS.get_cmdline_user_args()
+	update_camera(0)
 
 func _unhandled_input(event):
 	if not game.playing: return
@@ -73,6 +79,8 @@ func _unhandled_input(event):
 			KEY_1: switch_weapon(0)
 			KEY_2: switch_weapon(1)
 			KEY_3: switch_weapon(2)
+			KEY_F4:
+				if OS.is_debug_build(): aim_debug.visible = not aim_debug.visible
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index==MOUSE_BUTTON_WHEEL_UP:switch_weapon((weapon+1)%3)
 		if event.button_index==MOUSE_BUTTON_WHEEL_DOWN:switch_weapon((weapon+2)%3)
@@ -147,6 +155,7 @@ func _physics_process(delta):
 			var moved=CombatRules.reload_transfer(ammo[weapon],reserve[weapon],CombatRules.WEAPONS[weapon].mag)
 			ammo[weapon]=moved.x;reserve[weapon]=moved.y
 	visual.animate(delta,velocity,is_on_floor(),pitch,progress,sprinting)
+	update_camera(delta)
 	var firing=fire_touch or (fire_requested and weapon!=2) or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.get_joy_axis(0,JOY_AXIS_TRIGGER_RIGHT)>.3
 	fire_requested=false
 	if firing and cooldown<=0 and reload_left<=0 and not sprinting:
@@ -158,7 +167,7 @@ func _physics_process(delta):
 		else:shoot()
 	else:charge=0
 
-func _process(delta):
+func update_camera(delta):
 	if not is_instance_valid(camera):return
 	var third=Settings.values.third_person
 	var target_distance=(Settings.values.camera_distance*(.64 if ads else 1)) if third else 0.0
@@ -194,7 +203,7 @@ func report_view_ready(third: bool):
 	if DisplayServer.get_name()!="headless":await RenderingServer.frame_post_draw
 	print("IRON_VEIL_VIEW_SETTLED / "+("3P" if third else "1P"))
 
-func shoot():
+func shoot(spread_override: float = -1.0):
 	var spec=CombatRules.WEAPONS[weapon]
 	ammo[weapon]-=1
 	cooldown=spec.interval
@@ -205,21 +214,18 @@ func shoot():
 	shake=spec.kick*4
 	var from=visual.muzzle.global_position
 	var space=get_world_3d().direct_space_state
-	var aim_query=PhysicsRayQueryParameters3D.create(camera.global_position,camera.global_position-camera.global_basis.z*120,1|8|16)
-	aim_query.collide_with_areas=true
-	aim_query.exclude=[get_rid()]
-	var aim_hit=space.intersect_ray(aim_query)
-	var target=aim_hit.position if aim_hit else aim_query.to
-	var base_direction=(target-from).normalized()
+	var excluded: Array[RID] = [get_rid()]
+	var solution = AimSolver.solve(camera,game.hud.crosshair_point(),from,space,excluded,visual.weapon_holder.global_position)
+	last_shots.clear()
 	for i in spec.pellets:
-		var spread=spec.spread*(.38 if ads else 1)
-		var direction=(base_direction+camera.global_basis.x*randf_range(-spread,spread)+camera.global_basis.y*randf_range(-spread,spread)).normalized()
-		var query=PhysicsRayQueryParameters3D.create(from,from+direction*120,1|8|16)
-		query.collide_with_areas=true
-		query.exclude=[get_rid()]
-		var result=space.intersect_ray(query)
-		var endpoint=result.position if result else query.to
+		var spread=spread_override if spread_override>=0 else spec.spread*(.38 if ads else 1)
+		var shot = AimSolver.trace(solution,space,excluded,Vector2(randf_range(-spread,spread),randf_range(-spread,spread)),camera.global_basis)
+		last_shots.append(shot)
+		var direction: Vector3 = shot.direction
+		var result: Dictionary = shot.hit
+		var endpoint: Vector3 = shot.to
 		game.effects.tracer(from,endpoint,spec.color,weapon==2)
+		aim_debug.show_shot(solution,shot)
 		if result:
 			var body=result.collider
 			game.effects.impact(result.position,result.normal,str(body.get_meta("surface","concrete")),weapon==2,body is StaticBody3D)
